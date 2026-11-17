@@ -8,6 +8,8 @@ from app import db, llm, rules
 def run_check(text: str, submitted_by: str) -> dict:
     """Check the text with the model and the rules engine, then store a draft."""
     lines = llm.extract_lines(text)
+    if not lines:
+        raise ValueError("No expense lines found in the text.")
     result = rules.check_claim(lines, rules.load_policy())
     summary = _summary(result)
 
@@ -26,8 +28,12 @@ def run_check(text: str, submitted_by: str) -> dict:
 
 
 def _summary(checked: dict) -> str:
-    """Use the model summary, or the template when the call fails outright."""
+    """Use the model summary only when it names every flagged rule id."""
     try:
-        return llm.summarise(checked)
+        summary = llm.summarise(checked)
     except Exception:
         return llm.template_summary(checked)
+    rule_ids = llm.flagged_rule_ids(checked)
+    if any(rule_id not in summary for rule_id in rule_ids):
+        return llm.template_summary(checked)
+    return summary

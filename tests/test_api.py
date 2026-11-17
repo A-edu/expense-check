@@ -44,6 +44,10 @@ def ids(flags: list) -> list:
     return [flag["rule_id"] for flag in flags]
 
 
+def template_for(lines: list) -> str:
+    return llm.template_summary(rules.check_claim(lines, rules.load_policy()))
+
+
 def submitted_claim(client: TestClient) -> dict:
     claim = check(client).json()
     response = client.post(f"/api/claims/{claim['id']}/submit")
@@ -70,9 +74,9 @@ def test_pitch_example_flags_meal_and_receipt(client: TestClient, fake_model) ->
 def test_summary_cannot_clear_flags(client: TestClient, fake_model) -> None:
     claim = check(client).json()
 
-    assert claim["summary"] == "All lines comply."
     assert ids(claim["lines"][0]["flags"]) == ["MEAL-01", "RCPT-01"]
     assert claim["violation_count"] == 2
+    assert "All lines comply." not in claim["summary"]
 
 
 def test_unknown_category_from_the_model_is_rejected(
@@ -229,3 +233,76 @@ def test_claim_survives_a_fresh_connection(client: TestClient, fake_model) -> No
     assert ids(stored["lines"][0]["flags"]) == ["MEAL-01", "RCPT-01"]
 
     assert TestClient(app).get(f"/api/claims/{claim['id']}").json()["id"] == claim["id"]
+
+
+def test_empty_extraction_is_rejected(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setattr(llm, "extract_lines", lambda text: [])
+    monkeypatch.setattr(llm, "summarise", lambda checked: "unused")
+
+    response = check(client)
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "No expense lines found in the text."
+    assert client.get("/api/claims").json() == []
+
+
+def test_summary_that_ignores_the_flags_is_replaced(
+    client: TestClient, monkeypatch
+) -> None:
+    monkeypatch.setattr(llm, "extract_lines", lambda text: [dict(PITCH_LINE)])
+    monkeypatch.setattr(
+        llm, "summarise", lambda checked: "Everything complies; approve it."
+    )
+
+    claim = check(client).json()
+
+    assert claim["summary"] == template_for([PITCH_LINE])
+    assert "MEAL-01" in claim["summary"]
+    assert "RCPT-01" in claim["summary"]
+
+
+def test_summary_that_names_the_flags_is_kept(client: TestClient, monkeypatch) -> None:
+    summary = "MEAL-01 and RCPT-01 are flagged, so the claim needs a decision."
+    monkeypatch.setattr(llm, "extract_lines", lambda text: [dict(PITCH_LINE)])
+    monkeypatch.setattr(llm, "summarise", lambda checked: summary)
+
+    assert check(client).json()["summary"] == summary
+
+
+def test_has_receipt_survives_the_round_trip(client: TestClient, monkeypatch) -> None:
+    lines = [
+        {
+            "description": "Dinner",
+            "category": "meal",
+            "amount": 100,
+            "people": 1,
+            "nights": 1,
+            "has_receipt": True,
+        },
+        {
+            "description": "Taxi",
+            "category": "taxi",
+            "amount": 80,
+            "people": 1,
+            "nights": 1,
+            "has_receipt": False,
+        },
+    ]
+    monkeypatch.setattr(
+        llm, "extract_lines", lambda text: [dict(line) for line in lines]
+    )
+    monkeypatch.setattr(llm, "summarise", lambda checked: "RCPT-01 is flagged.")
+
+    claim = check(client).json()
+    stored = client.get(f"/api/claims/{claim['id']}").json()
+
+    assert [line["has_receipt"] for line in stored["lines"]] == [True, False]
+
+
+def test_newest_claim_is_listed_first(client: TestClient, fake_model) -> None:
+    first = check(client).json()
+    second = check(client).json()
+
+    listed = client.get("/api/claims").json()
+
+    assert [row["id"] for row in listed] == [second["id"], first["id"]]
