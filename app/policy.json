@@ -1,0 +1,40 @@
+{
+  "version": "2026-11-v1",
+  "currency": "SAR",
+  "rules": [
+    {
+      "id": "MEAL-01",
+      "type": "max_per_person",
+      "category": "meal",
+      "limit": 150,
+      "text": "A meal line is capped at 150 SAR per person."
+    },
+    {
+      "id": "TAXI-01",
+      "type": "max_per_line",
+      "category": "taxi",
+      "limit": 100,
+      "text": "A taxi line is capped at 100 SAR per line."
+    },
+    {
+      "id": "HOTEL-01",
+      "type": "max_per_night",
+      "category": "hotel",
+      "limit": 600,
+      "text": "A hotel line is capped at 600 SAR per night."
+    },
+    {
+      "id": "RCPT-01",
+      "type": "receipt_required_above",
+      "category": "*",
+      "limit": 50,
+      "text": "Any line above 50 SAR requires a receipt."
+    },
+    {
+      "id": "CAT-01",
+      "type": "manual_review",
+      "category": "other",
+      "text": "A line in the other category is sent for manual review."
+    }
+  ]
+}
