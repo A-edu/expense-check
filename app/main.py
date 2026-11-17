@@ -1,16 +1,21 @@
-"""JSON API for Expense Check."""
+"""JSON API and pages for Expense Check."""
 
 import sqlite3
 from contextlib import asynccontextmanager, closing
+from pathlib import Path
 from typing import Iterator, Literal, Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from app import db, llm, pipeline
 
 load_dotenv()
+
+STATIC_DIR = Path(__file__).with_name("static")
 
 
 @asynccontextmanager
@@ -20,6 +25,7 @@ async def lifespan(_: FastAPI) -> Iterator[None]:
 
 
 app = FastAPI(title="Expense Check", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 class CheckRequest(BaseModel):
@@ -43,6 +49,16 @@ class DecisionRequest(BaseModel):
 def get_conn() -> Iterator[sqlite3.Connection]:
     with closing(db.connect()) as conn:
         yield conn
+
+
+@app.get("/", include_in_schema=False)
+def staff_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "staff.html", media_type="text/html")
+
+
+@app.get("/review", include_in_schema=False)
+def review_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "review.html", media_type="text/html")
 
 
 @app.post("/api/claims/check")

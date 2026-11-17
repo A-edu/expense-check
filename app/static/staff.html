@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Submit a claim · Expense Check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&amp;display=swap">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a class="brand" href="/">Expense Check</a>
+      <nav class="switch" aria-label="Pages">
+        <a class="switch-option" href="/" aria-current="page">Submit a claim</a>
+        <a class="switch-option" href="/review">Review claims</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <h1 class="page-title">Submit a claim</h1>
+
+    <div class="layout layout--staff">
+      <section aria-label="Claim form">
+        <form class="form" id="check-form">
+          <div class="field">
+            <label for="your-name">Your name</label>
+            <input id="your-name" name="your-name" type="text" autocomplete="name" required>
+          </div>
+
+          <div class="field">
+            <label for="expenses">Expenses</label>
+            <textarea id="expenses" name="expenses" rows="6" maxlength="2000" required
+              aria-describedby="expenses-help"
+              placeholder="Dinner for 3, 620 SAR, no receipt&#10;Airport taxi 85 SAR, receipt attached"></textarea>
+            <p class="help" id="expenses-help">One expense per line. Mention people, nights and whether you have a receipt.</p>
+          </div>
+
+          <div class="form-actions">
+            <button class="button button--primary" id="check-button" type="submit">Check claim</button>
+          </div>
+
+          <p class="status" id="check-status" aria-live="polite"></p>
+          <p class="error" id="check-error" aria-live="polite" hidden></p>
+        </form>
+      </section>
+
+      <section class="claim-column" aria-label="Checked claim">
+        <p class="empty-state" id="claim-empty">Your checked claim will appear here.</p>
+        <div id="claim-slot" hidden></div>
+        <div class="claim-actions" id="claim-actions" hidden>
+          <button class="button button--primary" id="send-button" type="button">Send to manager</button>
+          <button class="button button--secondary" id="new-button" type="button">Start a new claim</button>
+        </div>
+        <p class="status" id="claim-status" aria-live="polite"></p>
+        <p class="error" id="claim-error" aria-live="polite" hidden></p>
+      </section>
+    </div>
+  </main>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

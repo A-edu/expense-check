@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Review claims · Expense Check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&amp;display=swap">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a class="brand" href="/">Expense Check</a>
+      <nav class="switch" aria-label="Pages">
+        <a class="switch-option" href="/">Submit a claim</a>
+        <a class="switch-option" href="/review" aria-current="page">Review claims</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <h1 class="page-title">Review claims</h1>
+
+    <div class="layout layout--review">
+      <section class="queue-column" aria-label="Claims waiting for review">
+        <ul class="queue" id="queue"></ul>
+        <p class="empty-state" id="queue-empty">No claims are waiting for review.</p>
+        <p class="error" id="queue-error" aria-live="polite" hidden></p>
+      </section>
+
+      <section class="claim-column" aria-label="Selected claim">
+        <p class="empty-state" id="review-empty">Select a claim from the queue.</p>
+        <div id="review-slot" hidden></div>
+
+        <div class="decision-panel" id="decision-panel" hidden>
+          <div class="field">
+            <label for="comment">Comment</label>
+            <textarea id="comment" name="comment" rows="3" aria-describedby="comment-help"></textarea>
+            <p class="help" id="comment-help">Required when returning a claim.</p>
+          </div>
+
+          <div class="decision-actions">
+            <button class="button button--primary" id="approve-button" type="button">Approve claim</button>
+            <button class="button button--secondary button--danger" id="return-button" type="button">Return claim</button>
+          </div>
+
+          <p class="error" id="decision-error" aria-live="polite" hidden></p>
+        </div>
+
+        <p class="status" id="decision-status" aria-live="polite"></p>
+      </section>
+    </div>
+  </main>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

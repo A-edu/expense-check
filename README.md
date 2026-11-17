@@ -31,6 +31,9 @@ The API tests use a temporary database and fake the model, so no network is need
 
     uvicorn app.main:app --reload
 
+Then open <http://localhost:8000/> to submit a claim and <http://localhost:8000/review> to
+work the review queue. Both pages are plain HTML in `app/static/` and talk to the JSON API.
+
 ## Send the pitch example
 
     curl -s -X POST localhost:8000/api/claims/check \
