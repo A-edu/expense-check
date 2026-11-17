@@ -70,6 +70,12 @@ def ids(flags: list) -> list:
     return [flag["rule_id"] for flag in flags]
 
 
+def without(line: dict, *keys: str) -> dict:
+    for key in keys:
+        line.pop(key, None)
+    return line
+
+
 def test_shipped_policy_loads_with_unique_ids() -> None:
     shipped = load_policy()
     rule_ids = [rule["id"] for rule in shipped["rules"]]
@@ -205,3 +211,86 @@ def test_flag_messages_include_rule_id_and_numbers(policy: dict) -> None:
     assert "TAXI-01" in message
     assert "250" in message
     assert "100" in message
+
+
+def test_meal_total_just_over_the_allowance(policy: dict) -> None:
+    assert ids(check_line(make_line(amount=450.01, people=3), policy)) == ["MEAL-01"]
+
+
+def test_meal_allowance_is_compared_on_the_total(policy: dict) -> None:
+    assert ids(check_line(make_line(amount=1050.03, people=7), policy)) == ["MEAL-01"]
+    assert check_line(make_line(amount=1050, people=7), policy) == []
+
+
+def test_hotel_just_over_the_allowance(policy: dict) -> None:
+    line = make_line(category="hotel", amount=1800.01, nights=3)
+    assert ids(check_line(line, policy)) == ["HOTEL-01"]
+
+
+def test_missing_people_defaults_to_one(policy: dict) -> None:
+    line = without(make_line(amount=300), "people")
+    assert ids(check_line(line, policy)) == ["MEAL-01"]
+
+
+def test_missing_people_and_nights_default_for_taxi(policy: dict) -> None:
+    line = without(make_line(category="taxi", amount=120), "people", "nights")
+    assert ids(check_line(line, policy)) == ["TAXI-01"]
+
+
+def test_missing_has_receipt_defaults_to_false(policy: dict) -> None:
+    line = without(make_line(amount=90), "has_receipt")
+    assert ids(check_line(line, policy)) == ["RCPT-01"]
+
+
+def test_non_bool_has_receipt_raises(policy: dict) -> None:
+    with pytest.raises(ValueError):
+        check_line(make_line(has_receipt="false"), policy)
+
+
+@pytest.mark.parametrize("amount", [float("nan"), float("inf")])
+def test_non_finite_amount_raises(policy: dict, amount: float) -> None:
+    with pytest.raises(ValueError):
+        check_line(make_line(amount=amount), policy)
+
+
+def test_check_claim_returns_validated_lines(policy: dict) -> None:
+    result = check_claim([{"description": "Taxi", "category": "taxi", "amount": 20}], policy)
+    line = result["lines"][0]
+    assert line["people"] == 1
+    assert line["nights"] == 1
+    assert line["has_receipt"] is False
+    assert line["flags"] == []
+    assert set(line) == {
+        "description",
+        "category",
+        "amount",
+        "people",
+        "nights",
+        "has_receipt",
+        "flags",
+    }
+
+
+def write_policy(tmp_path, rules: list) -> str:
+    path = tmp_path / "policy.json"
+    body = {"version": "bad-v1", "currency": "SAR", "rules": rules}
+    path.write_text(json.dumps(body), encoding="utf-8")
+    return str(path)
+
+
+def test_load_policy_rejects_unknown_rule_type(tmp_path) -> None:
+    path = write_policy(
+        tmp_path,
+        [{"id": "BAD-01", "type": "max_per_week", "category": "meal", "limit": 10}],
+    )
+    with pytest.raises(ValueError):
+        load_policy(path)
+
+
+def test_load_policy_rejects_missing_limit(tmp_path) -> None:
+    path = write_policy(
+        tmp_path,
+        [{"id": "NOLIMIT-01", "type": "max_per_line", "category": "taxi"}],
+    )
+    with pytest.raises(ValueError):
+        load_policy(path)
