@@ -306,3 +306,12 @@ def test_newest_claim_is_listed_first(client: TestClient, fake_model) -> None:
     listed = client.get("/api/claims").json()
 
     assert [row["id"] for row in listed] == [second["id"], first["id"]]
+
+
+def test_pages_are_served_as_html(client: TestClient) -> None:
+    for path in ("/", "/review"):
+        response = client.get(path)
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert "Expense Check" in response.text
